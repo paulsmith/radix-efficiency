@@ -1,0 +1,25 @@
+Inspired by this article:
+
+https://www.quantamagazine.org/how-base-3-computing-beats-binary-20240809/
+
+Specifically, this passage:
+
+> If a three-state system is so efficient, you might imagine that a four-state or
+> five-state system would be even more so. But the more digits you require, the
+> more space you’ll need. It turns out that ternary is the most economical of all
+> possible integer bases for representing big numbers.
+
+> To see why, consider an important metric that tallies up how much room a system
+> will need to store data. You start with the base of the number system, which is
+> called the radix, and multiply it by the number of digits needed to represent
+> some large number in that radix. For example, the number 100,000 in base 10
+> requires six digits. Its “radix economy” is therefore 10 × 6 = 60. In base 2,
+> the same number requires 17 digits, so its radix economy is 2 × 17 = 34. And in
+> base 3, it requires 11 digits, so its radix economy is 3 × 11 = 33. For large
+> numbers, base 3 has a lower radix economy than any other integer base.
+> (Surprisingly, if you allow a base to be any real number, and not just an
+> integer, then the most efficient computational base is the irrational number e.)
+
+Claude 3.5 Sonnet interaction:
+
+https://claude.ai/chat/ba1851e7-9e70-4ab6-bcbe-e58ee4402d56

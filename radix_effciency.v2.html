@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Radix Efficiency Plot</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 5px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .legend {
+            font: 10px sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="plot"></div>
+
+    <script>
+        // Helper functions
+        function digitsInBase(n, base) {
+            if (n === 0) return 1;
+            return Math.floor(Math.log(n) / Math.log(base)) + 1;
+        }
+
+        function radixEconomy(n, base) {
+            return base * digitsInBase(n, base);
+        }
+
+        // Generate data
+        const x = d3.range(0, 10.01, 0.01).map(d => Math.pow(10, d));
+        const bases = d3.range(2, 17);
+        const data = bases.map(base => ({
+            base: base,
+            values: x.map(n => ({x: n, y: radixEconomy(n, base)}))
+        }));
+
+        // Set up dimensions
+        const margin = {top: 50, right: 150, bottom: 50, left: 60};
+        const width = 800 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select("#plot")
+            .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Set up scales
+        const x_scale = d3.scaleLog()
+            .domain(d3.extent(x))
+            .range([0, width]);
+
+        const y_scale = d3.scaleLog()
+            .domain([1, d3.max(data, d => d3.max(d.values, v => v.y))])
+            .range([height, 0]);
+
+        // Create axes
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x_scale).ticks(5, ".0e"));
+
+        svg.append("g")
+            .call(d3.axisLeft(y_scale).ticks(5, ".0e"));
+
+        // Add labels and title
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .text("Represented Number");
+
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left + 15)
+            .style("text-anchor", "middle")
+            .text("Radix Economy (radix * digits)");
+
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", -margin.top / 2)
+            .style("text-anchor", "middle")
+            .style("font-size", "16px")
+            .text("Radix Efficiency for Different Bases");
+
+        // Create color scale
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Create tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        // Create line generator
+        const line = d3.line()
+            .x(d => x_scale(d.x))
+            .y(d => y_scale(d.y));
+
+        // Add lines
+        svg.selectAll(".line")
+            .data(data)
+            .join("path")
+                .attr("class", "line")
+                .attr("d", d => line(d.values))
+                .style("fill", "none")
+                .style("stroke", d => color(d.base))
+                .style("stroke-width", 1.5)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).style("stroke-width", 4);
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(`Base ${d.base}`)
+                        .style("left", (event.pageX) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select(this).style("stroke-width", 1.5);
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+        // Add legend
+        const legend = svg.selectAll(".legend")
+            .data(bases)
+            .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", (d, i) => `translate(0,${i * 20})`);
+
+        legend.append("rect")
+            .attr("x", width + 10)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", color);
+
+        legend.append("text")
+            .attr("x", width + 35)
+            .attr("y", 9)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text(d => `Base ${d}`);
+
+        // Add annotation for base 3
+        svg.append("text")
+            .attr("x", x_scale(1e9))
+            .attr("y", y_scale(100))
+            .attr("text-anchor", "end")
+            .attr("dy", "0.35em")
+            .text("Base 3 becomes most efficient for large numbers")
+            .call(wrap, 150);
+
+        // Function to wrap text
+        function wrap(text, width) {
+            text.each(function() {
+                let text = d3.select(this),
+                    words = text.text().split(/\s+/).reverse(),
+                    word,
+                    line = [],
+                    lineNumber = 0,
+                    lineHeight = 1.1, // ems
+                    y = text.attr("y"),
+                    dy = parseFloat(text.attr("dy")),
+                    tspan = text.text(null).append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", dy + "em");
+                while (word = words.pop()) {
+                    line.push(word);
+                    tspan.text(line.join(" "));
+                    if (tspan.node().getComputedTextLength() > width) {
+                        line.pop();
+                        tspan.text(line.join(" "));
+                        line = [word];
+                        tspan = text.append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
